@@ -88,10 +88,15 @@ def logo(cle, page, thumb):
         else:
             print("  pas de logo :", cle, page)
         return None
-    try:
-        img = Image.open(io.BytesIO(get(thumb, binary=True))).convert("RGBA")
-    except RuntimeError as err:  # limite de débit Wikimedia : on retentera au prochain passage
-        print("  logo reporté :", cle, err)
+    img = None
+    # thumb.wikimedia.org ne répond pas partout : upload.wikimedia.org sert les mêmes fichiers
+    for url in dict.fromkeys([thumb.replace("://thumb.wikimedia.org/", "://upload.wikimedia.org/"), thumb]):
+        try:
+            img = Image.open(io.BytesIO(get(url, binary=True))).convert("RGBA")
+            break
+        except Exception as err:  # réseau, limite de débit Wikimedia... : on retentera au prochain passage
+            print("  logo reporté :", cle, type(err).__name__)
+    if img is None:
         return None
     img = img.crop(img.getbbox())
     img.save(dest)

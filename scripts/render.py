@@ -149,7 +149,8 @@ class Donnees:
             cle_logo = e["logo"] or f"pastille:{e['nom']}"
             e["cle_logo"] = cle_logo
             if cle_logo not in self.logos:
-                im = Image.open(ROOT / e["logo"]).convert("RGBA") if e["logo"] else pastille(e["nom"])
+                fichier = ROOT / e["logo"] if e["logo"] else None   # logo pas (encore) téléchargé : pastille à initiales
+                im = Image.open(fichier).convert("RGBA") if fichier and fichier.exists() else pastille(e["nom"])
                 im.thumbnail((160, 160), Image.LANCZOS)
                 self.logos[cle_logo] = np.asarray(im)
 
