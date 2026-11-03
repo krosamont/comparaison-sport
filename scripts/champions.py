@@ -81,8 +81,23 @@ def ecrire(nom, rows):
     print(f"{nom}: {len(rows)} saisons ({rows[0]['saison']} -> {rows[-1]['saison']})")
 
 
+# Angleterre : lignes où l'export a renvoyé le champion en fin de ligne (le 2e passe alors en tête) ; corrigées d'après
+# les classements Wikipédia (« YYYY–YY Football League First Division » / « Premier League ») : année de fin -> (champion, 2e)
+CORRECTIONS_ANGLETERRE = {
+    1986: ("Liverpool Football Club", "Everton Football Club"),
+    1994: ("Manchester United Football Club", "Blackburn Rovers Football Club"),
+    1996: ("Manchester United Football Club", "Newcastle United Football Club"),
+    1998: ("Arsenal Football Club", "Manchester United Football Club"),
+    1999: ("Manchester United Football Club", "Arsenal Football Club"),
+    2002: ("Arsenal Football Club", "Liverpool Football Club"),
+    2010: ("Chelsea Football Club", "Manchester United Football Club"),
+    2019: ("Manchester City Football Club", "Liverpool Football Club"),
+    2023: ("Manchester City Football Club", "Arsenal Football Club"),
+}
+
+
 # --- Championnats (Ligue 1, Angleterre) : lien 1 = saison, 2 = champion, 3 = vice
-def championnat(fichiers):
+def championnat(fichiers, corrections=None):
     out = {}
     for nom in fichiers:
         for row in lignes(nom):
@@ -97,8 +112,8 @@ def championnat(fichiers):
                 out[fin] = dict(saison=saison(fin), annee_fin=fin, champion="",
                                 finaliste=page(l[1]), page_champion="")
                 continue
-            out[fin] = dict(saison=saison(fin), annee_fin=fin, champion=page(l[1]),
-                            finaliste=page(l[2]), page_champion=page(l[1]))
+            champ, vice = (corrections or {}).get(fin, (page(l[1]), page(l[2])))
+            out[fin] = dict(saison=saison(fin), annee_fin=fin, champion=champ, finaliste=vice, page_champion=champ)
     return out.values()
 
 
@@ -174,7 +189,8 @@ def c1():
 
 if __name__ == "__main__":
     ecrire("ligue1.csv", championnat(["ligue1_champions_1945-2002.csv", "ligue1_champions_2002-2026.csv"]))
-    ecrire("angleterre.csv", championnat(["angleterre_champions_1892-1992.csv", "premier_league_champions_1992-2026.csv"]))
+    ecrire("angleterre.csv", championnat(["angleterre_champions_1892-1992.csv", "premier_league_champions_1992-2026.csv"],
+                                         CORRECTIONS_ANGLETERRE))
     ecrire("nba.csv", nba())
     ecrire("liga.csv", liga())
     ecrire("ligue_des_champions.csv", c1())
