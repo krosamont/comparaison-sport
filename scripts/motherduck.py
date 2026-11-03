@@ -1,7 +1,8 @@
-"""Données de comparaison_sport vers MotherDuck md:foot, schéma comparaison_sport.
+"""Données de comparaison_sport vers la base foot du serveur (~/data/foot.duckdb, $FOOT_DB), schéma comparaison_sport.
+(MotherDuck abandonné le 2026-11-03 : trop cher ; le nom du script est resté.)
 
     python scripts/motherduck.py export          # Mac : data/video + data/champions -> data/motherduck/*.csv
-    python scripts/motherduck.py load [--dry-run] # serveur : data/motherduck/*.csv -> md:foot (remplace les tables)
+    python scripts/motherduck.py load [--dry-run] # serveur : data/motherduck/*.csv -> ~/data/foot.duckdb (remplace les tables)
 
 Tables (une ligne par…) :
   competitions    compétition
@@ -96,9 +97,8 @@ def export():
 
 def load(dry_run=False):
     import duckdb
-    if not dry_run and not os.environ.get("motherduck_token"):
-        os.environ["motherduck_token"] = open(os.path.expanduser("~/.motherduck_token")).read().strip()
-    con = duckdb.connect(":memory:" if dry_run else "md:foot")
+    base = os.environ.get("FOOT_DB", os.path.expanduser("~/data/foot.duckdb"))
+    con = duckdb.connect(":memory:" if dry_run else base)
     con.execute(f"create schema if not exists {SCHEMA}")
     con.execute("begin")
     try:
