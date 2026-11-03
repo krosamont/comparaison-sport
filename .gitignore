@@ -1,0 +1,24 @@
+# environnement et caches
+.venv/
+__pycache__/
+.DS_Store
+data/cache/
+# téléchargé ou généré par les scripts (voir README) ; seul l'échantillon de l'exemple (France) est versionné
+data/engsoccerdata/*
+!data/engsoccerdata/france.csv
+data/geo/*
+!data/geo/FRA_ADM1.geojson
+data/logos/
+data/c1/
+data/motherduck/
+data/video/*
+!data/video/france.json
+data/esp.csv
+# rendus (vidéos, GIF, images) et pages générées
+videos/
+video_reference/
+site/data/
+site/media/
+site/projet/
+site/en/
+VIGNETTE.png
