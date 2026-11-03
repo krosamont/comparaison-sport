@@ -254,7 +254,7 @@ def page(langue, clair):
     <ul>{''.join(f'<li>{x}</li>' for x in t['legende'])}</ul>
     <p class="src">{t['sources']}{':' if langue == 'en' else ' :'} {html.escape(sources)} · geoBoundaries</p>
   </section>
-  <footer><a href="{accueil}">data-workers.com</a> · Kevin Rosamont Prombo</footer>
+  <footer><a href="{accueil}">data-workers.com</a> · Kevin Rosamont Prombo · <a href="https://github.com/krosamont/comparaison-sport">{'The code on GitHub' if langue == 'en' else 'Le code sur GitHub'}</a></footer>
 </div>
 <script src="/projet/comparaison/carte.js?v=1"></script>
 <script>
