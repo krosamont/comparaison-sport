@@ -1,17 +1,14 @@
-"""Données de comparaison_sport vers la base foot du serveur (~/data/foot.duckdb, $FOOT_DB), schéma z_raw : toutes
-les données brutes du projet y sont, en tables. (MotherDuck abandonné le 2026-11-03 ; le nom du script est resté.)
+"""Données de comparaison_sport vers la base foot du serveur (~/data/foot.duckdb, $FOOT_DB), schéma comparaison_sport.
+(MotherDuck abandonné le 2026-11-03 : trop cher ; le nom du script est resté.)
 
     python scripts/motherduck.py export          # Mac : data/video + data/champions -> data/motherduck/*.csv
-    python scripts/motherduck.py load [--dry-run] # serveur : data/ -> ~/data/foot.duckdb, schéma z_raw (remplace les tables)
+    python scripts/motherduck.py load [--dry-run] # serveur : data/motherduck/*.csv -> ~/data/foot.duckdb (remplace les tables)
 
-Tables z_raw, noms <source>[_<pays>]_<sujet> au singulier (une ligne par…) :
-  comparaison_competition    compétition
-  comparaison_champion       compétition × saison (champion, finaliste ; champion vide = titre non attribué)
-  comparaison_participation  compétition × saison × club (nom, région, position et logo de la saison)
-  comparaison_club           compétition × club × époque (NBA : déménagements / changements de nom ou de logo)
-  wiki_logo                  logo (data/logos/<compétition>/<club>.png), image PNG en BLOB
-  FICHIERS ci-dessous        ligne d'un fichier source téléchargé, telle quelle, tout en texte ; JSON aplati :
-                             la clé dans `cle`, une ligne par élément d'une liste (`_index`), une colonne par champ
+Tables (une ligne par…) :
+  competitions    compétition
+  champions       compétition × saison (champion, finaliste ; champion vide = titre non attribué)
+  participations  compétition × saison × club (nom, région, position et logo de la saison)
+  clubs           compétition × club × époque (NBA : déménagements / changements de nom ou de logo)
 """
 import csv
 import json
@@ -21,23 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "motherduck"
-SCHEMA = "z_raw"
-TABLES = {"competitions": "comparaison_competition", "champions": "comparaison_champion",
-          "participations": "comparaison_participation", "clubs": "comparaison_club"}
-FICHIERS = {   # fichier source (dans data/) -> table
-    "wikipedia_brut/angleterre_champions_1892-1992.csv": "wiki_angleterre_champion_1892_1992",
-    "wikipedia_brut/premier_league_champions_1992-2026.csv": "wiki_angleterre_champion_1992_2026",
-    "wikipedia_brut/ligue1_champions_1945-2002.csv": "wiki_france_champion_1945_2002",
-    "wikipedia_brut/ligue1_champions_2002-2026.csv": "wiki_france_champion_2002_2026",
-    "wikipedia_brut/liga_champions_1929-2026.csv": "wiki_espagne_champion_1929_2026",
-    "wikipedia_brut/ligue_des_champions_finales_1956-2026.csv": "wiki_europe_finale_1956_2026",
-    "wikipedia_brut/nba_finales_1947-2026.csv": "wiki_usa_finale_1947_2026",
-    "wikipedia_brut/nba_titres_par_franchise.csv": "wiki_usa_titre_par_franchise",
-    "c1/participants.json": "wiki_europe_participant",
-    "c1/clubs.json": "wikidata_europe_club",
-    "engsoccerdata/angleterre.csv": "engsoccerdata_angleterre_match",
-    "engsoccerdata/france.csv": "engsoccerdata_france_match",
-}
+SCHEMA = "comparaison_sport"
 
 COMPETITIONS = {  # clé du fichier data/video -> (titre, sport, fichier data/champions)
     "france": ("Championnat de France", "football", "ligue1.csv"),
@@ -114,45 +95,17 @@ def export():
         print(f"  {t}.csv : {len(rows)} lignes")
 
 
-def json_en_lignes(f):
-    """Un fichier JSON {clé: valeur} en lignes, sans calcul : la clé dans `cle` ; une valeur liste -> une ligne par élément
-    (`_index` = sa place) ; un objet -> une colonne par champ ; tout en texte (vide = null)."""
-    import pandas as pd
-    lignes = []
-    for cle, v in json.load(open(f, encoding="utf-8")).items():
-        for i, e in (enumerate(v) if isinstance(v, list) else [(None, v)]):
-            ligne = {"cle": cle} if i is None else {"cle": cle, "_index": str(i)}
-            ligne.update({k: None if x is None else str(x) for k, x in (e.items() if isinstance(e, dict) else [("valeur", e)])})
-            lignes.append(ligne)
-    return pd.DataFrame(lignes).astype("string")
-
-
 def load(dry_run=False):
     import duckdb
     base = os.environ.get("FOOT_DB", os.path.expanduser("~/data/foot.duckdb"))
     con = duckdb.connect(":memory:" if dry_run else base)
     con.execute(f"create schema if not exists {SCHEMA}")
-    data = ROOT / "data"
-    tables = {}   # table -> requête
-    for t, cols in COLONNES.items():
-        types = "{" + ", ".join(f"'{c}': '{typ}'" for c, typ in cols.items()) + "}"
-        tables[TABLES[t]] = f"select *, now()::timestamp as _loaded_at from read_csv('{OUT / (t + '.csv')}', header=true, columns={types})"
-    tables["wiki_logo"] = (
-        "select split_part(filename, '/', -2) as competition, regexp_replace(split_part(filename, '/', -1), '[.]png$', '') as club, "
-        f"replace(filename, '{data}/', '') as _source_file, size as octets, sha256(content) as sha256, content as image, "
-        f"now()::timestamp as _loaded_at from read_blob('{data}/logos/*/*.png')")
-    for rel, nom in FICHIERS.items():
-        f = data / rel
-        if f.suffix == ".csv":
-            tables[nom] = (f"select * exclude (filename), '{rel}' as _source_file, now()::timestamp as _loaded_at "
-                           f"from read_csv('{f}', header=true, all_varchar=true, filename=true)")
-        else:   # JSON : aplati (voir json_en_lignes), tout en texte
-            con.register(f"_{nom}", json_en_lignes(f))
-            tables[nom] = (f"select *, '{rel}' as _source_file, now()::timestamp as _loaded_at from _{nom}")
     con.execute("begin")
     try:
-        for t, q in tables.items():
-            con.execute(f"create or replace table {SCHEMA}.{t} as {q}")
+        for t, cols in COLONNES.items():
+            types = "{" + ", ".join(f"'{c}': '{typ}'" for c, typ in cols.items()) + "}"
+            con.execute(f"create or replace table {SCHEMA}.{t} as select *, now()::timestamp as _loaded_at "
+                        f"from read_csv('{OUT / (t + '.csv')}', header=true, columns={types})")
             n = con.execute(f"select count(*) from {SCHEMA}.{t}").fetchone()[0]
             print(f"{'(test) ' if dry_run else ''}{SCHEMA}.{t} : {n} lignes")
         con.execute("commit")
