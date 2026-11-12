@@ -175,7 +175,7 @@ h1 { margin: 0; font-size: clamp(32px, 6vw, 54px); line-height: 1.05; }
 .lire h3 { margin: 0 0 8px; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .lire ul { margin: 0 0 10px; padding-left: 18px; color: var(--ink2); font-size: 14px; line-height: 1.7; columns: 2 300px; }
 .lire .src { font-size: 13px; color: var(--muted); margin: 0; }
-footer { margin-top: 40px; font-size: 13px; color: var(--muted); } footer a { color: var(--muted); }
+.sitefoot { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); } .sitefoot a { color: var(--ink2); }
 @media (max-width: 900px) { .app { grid-template-columns: 1fr; } .panneaux { display: grid; grid-template-columns: 1fr 1fr; } .lecture { grid-column: 1 / -1; } }
 @media (max-width: 560px) { .panneaux { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .reg path, .logos .logo, #titres li, #titres i b { transition: none; } }"""
@@ -197,7 +197,8 @@ def page(langue, clair):
     fr_url, en_url = f'/projet/comparaison/{sous}', f'/en/projet/comparaison/{sous}'
     boutons = ''.join(f'<button type="button" data-l="{l}" aria-pressed="false">{html.escape(COURTS[langue][l])}</button>' for l in LIGUES)
     cible, code, titre_l = (en_url, 'en', 'English version') if langue == 'fr' else (fr_url, 'fr', 'Version française')
-    switch_theme = f'<a class="theme-switch" href="{"../" if clair else "clair/"}">{t["autre_sombre"] if clair else t["autre"]}</a>'
+    # bouton clair / sombre dans le fil d'Ariane, comme les autres pages projet (projet/penaltys/) ; « Projets » mène à /projet/
+    switch_theme = f'<a class="switch theme-switch" href="{"../" if clair else "clair/"}">{t["autre_sombre"] if clair else t["autre"]}</a>'
     accueil = f'{racine}/clair/' if clair else f'{racine}/'
     fonts = ('family=Arvo:ital,wght@0,400;0,700;1,400' if clair else 'family=Inter:wght@400;500;600;700;800')
     sources = ' · '.join(f'{COURTS[langue][l]} : {SOURCES[l]}' for l in LIGUES)
@@ -227,9 +228,8 @@ def page(langue, clair):
 </head>
 <body>
 <a class="lang-switch" href="{cible}" hreflang="{code}" lang="{code}" title="{titre_l}">{code.upper()}</a>
-{switch_theme}
 <div class="wrap">
-  <nav class="sitenav"><img src="/assets/images/{'logo_orange' if clair else 'logo'}.png" alt=""><a href="{accueil}">Data Workers</a><span>/</span><a href="{racine}/projet/liste/{sous}">{t['nav_projets']}</a></nav>
+  <nav class="sitenav"><img src="/assets/images/{'logo_orange' if clair else 'logo'}.png" alt=""><a href="{accueil}">Data Workers</a><span>/</span><a href="{racine}/projet/{sous}">{t['nav_projets']}</a>{switch_theme}</nav>
   <p class="kicker">{t['kicker']}</p>
   <h1>{titre_h1}</h1>
   <p class="lead">{html.escape(t['lead'])}</p>
@@ -254,7 +254,7 @@ def page(langue, clair):
     <ul>{''.join(f'<li>{x}</li>' for x in t['legende'])}</ul>
     <p class="src">{t['sources']}{':' if langue == 'en' else ' :'} {html.escape(sources)} · geoBoundaries</p>
   </section>
-  <footer><a href="{accueil}">data-workers.com</a> · Kevin Rosamont Prombo · <a href="https://github.com/krosamont/comparaison-sport">{'The code on GitHub' if langue == 'en' else 'Le code sur GitHub'}</a></footer>
+  <footer class="sitefoot"><a href="{accueil}">data-workers.com</a> · Kevin Rosamont Prombo · <a href="https://github.com/krosamont/comparaison-sport">{'The code on GitHub' if langue == 'en' else 'Le code sur GitHub'}</a></footer>
 </div>
 <script src="/projet/comparaison/carte.js?v=1"></script>
 <script>
